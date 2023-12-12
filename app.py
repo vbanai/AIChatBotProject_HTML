@@ -13,49 +13,39 @@ from ChatGPTpart import get_Chat_response
 
 
 
-# from transformers import AutoModelForCausalLM, AutoTokenizer
-# import torch
-
-# tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-medium")
-# model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-medium")
-
-# df_existing_customer_original=pd.read_excel(r"C:\Users\vbanai\Documents\Programming\Dezsi porject\ChatFrontEnd\tutorial4\Order_existing_clients.xlsx")
-# df_existing_customer=df_existing_customer_original.to_string(index=False)
-# df_potential_customer=pd.read_excel(r"C:\Users\vbanai\Documents\Programming\Dezsi porject\ChatFrontEnd\tutorial4\Questions_PotentialCustomers.xlsx")
-
-# print(df_existing_customer)
-
-# doc=docx.Document(r"C:\Users\vbanai\Documents\Programming\Dezsi porject\ChatFrontEnd\tutorial4\Cars_services.docx")
-# full_text=""
-# for paragraph in doc.paragraphs:
-#   full_text+=paragraph.text+ "\n"
-# word_text=full_text.strip()
-
-# def get_completion_from_messages(messages, model="gpt-3.5-turbo", temperature=0):
-#   response = openai.ChatCompletion.create(
-#       model=model,
-#       messages=messages,
-#       temperature=temperature, 
-#   )
-#   return response.choices[0].message["content"]
-
-# context = [
-#   {'role': 'system', 'content': f"""
-#   You are telefonoperator in AutoDé Kft and you are answering incoming questions in English. Provide a complete response in a single message\
-#   If the user has question regarding the ongoing order, ask the client number. Consider each client number individually.\
-#   If the user has general questions don't need to ask the client number \            
-#   User: Can you give me the client number? Assistant: Please give me your client number.\
-#   If the client number is provided, answer the user according to  the table:{df_existing_customer} \
-#   Without the client number, start chatting with the user, you can't use external sources, only the 
-#   document:{word_text}. \
-#   Respond briefly, and always ask if you can help with anything else. 
-  
-# """}]
-
-def flask_app(df_existing_customer, word_text):
+def flask_app(existing_customers_xls_path, potential_customers_xls_path, general_services_file_path):
 
   app=Flask(__name__)
 
+  text=""
+
+#-----------------------------------------------------------------------------------------------
+#             Reading the databases needed for the process in
+#-----------------------------------------------------------------------------------------------
+
+
+
+  def data_preparation(existing_customers_xls_path, potential_customers_xls_path, general_services_file_path):
+
+    df_existing_customer_original=pd.read_excel(existing_customers_xls_path)
+    df_existing_customer=df_existing_customer_original.to_string(index=False)
+    df_potential_customer=pd.read_excel(potential_customers_xls_path)
+
+    doc=docx.Document(general_services_file_path)
+    full_text=""
+    for paragraph in doc.paragraphs:
+      full_text+=paragraph.text+ "\n"
+    word_text=full_text.strip()
+
+    return df_existing_customer_original, df_existing_customer, df_potential_customer, word_text
+
+#-----------------------------------------------------------------------------------------------
+#             Important variables
+#-----------------------------------------------------------------------------------------------
+
+  
+  df_existing_customer_original, df_existing_customer, df_potential_customer, word_text=data_preparation(existing_customers_xls_path, potential_customers_xls_path, general_services_file_path)
+   
   context = [
   
     {'role': 'system', 'content': f"""
@@ -78,8 +68,11 @@ def flask_app(df_existing_customer, word_text):
     
   """}
 
-  
   ]
+#-----------------------------------------------------------------------------------------------
+#             Flask ROUTING
+#-----------------------------------------------------------------------------------------------
+
 
   @app.route("/")
   @app.route('/home')
@@ -92,39 +85,70 @@ def flask_app(df_existing_customer, word_text):
 
   @app.route("/messengerchat")
   def messengerchat():
+    nonlocal text
+    if text!="":
+      output_file_creation(df_existing_customer_original, df_potential_customer, text, existing_customers_xls_path,
+                potential_customers_xls_path)
+      text=""
     return render_template('messengerchat.html')
 
   @app.route("/chat")
   def AIChatBot():
     return render_template('chat.html')
-
+  text=""
   @app.route("/get", methods=["GET", "POST"])
   def chat():
+    nonlocal text
     msg=request.form["msg"]
     input=msg
     context.append({'role':'user', 'content':f"{input}"})
     response=get_Chat_response(context)
+    text+=("USER: " + input + " | " + "ASSISTANT: " + response)
     context.append({'role':'assistant', 'content':f"{response}"})
     return response
+  
+#-----------------------------------------------------------------------------------------------
+#             Updating the databases with the new conversation
+#-----------------------------------------------------------------------------------------------
 
-# def get_Chat_response(context):
-#   response=get_completion_from_messages(context) 
-#   context.append({'role':'assistant', 'content':f"{response}"})
-#   return response
 
-# def get_Chat_response(text):
-#   # Let's chat for 5 lines
-#   for step in range(5):
-#       # encode the new user input, add the eos_token and return a tensor in Pytorch
-#       new_user_input_ids = tokenizer.encode(str(text) + tokenizer.eos_token, return_tensors='pt')
+  def output_file_creation(df_existing_customer_original, df_potential_customer, text, existing_customers_xls_path,
+                potential_customers_xls_path):
+    
+    current_date = datetime.now().date()
+    current_date = current_date.strftime("%Y-%m-%d")
+    new_column_header = 'Chat'+ current_date
+    
+    spotting_identifier=df_existing_customer_original["Customer Number"].apply(lambda x: text.lower().find(str(x).lower()) !=-1)
 
-#       # append the new user input tokens to the chat history
-#       bot_input_ids = torch.cat([chat_history_ids, new_user_input_ids], dim=-1) if step > 0 else new_user_input_ids
+    if not any(spotting_identifier)==True:
+      
+      if new_column_header not in df_potential_customer.columns.tolist():
+        df_potential_customer[new_column_header]=None
+        df_potential_customer.loc[2, new_column_header]=''
+        df_potential_customer.loc[2, new_column_header]+=text
+        
+        df_potential_customer.to_excel(potential_customers_xls_path, index=False)
+        df_potential_customer=df_potential_customer
+      else:
+        last_not_empty_index=df_potential_customer[new_column_header].last_valid_index()
+        df_potential_customer.loc[last_not_empty_index+1, new_column_header]=''
+        df_potential_customer.loc[last_not_empty_index+1, new_column_header]+=text
+        df_potential_customer.to_excel(potential_customers_xls_path, index=False)
+        df_potential_customer=df_potential_customer
+      
+    else:
+      
+      if new_column_header not in df_existing_customer_original.columns.tolist():
+        df_existing_customer_original[new_column_header]=''
+  
+      row=df_existing_customer_original[spotting_identifier].index.item()
 
-#       # generated a response while limiting the total chat history to 1000 tokens, 
-#       chat_history_ids = model.generate(bot_input_ids, max_length=1000, pad_token_id=tokenizer.eos_token_id)
+      existing_value = str(df_existing_customer_original.loc[row, new_column_header]) if not pd.isna(df_existing_customer_original.loc[row, new_column_header]) else ""
+      df_existing_customer_original.loc[row, new_column_header]=existing_value + text
+      df_existing_customer_original.to_excel(existing_customers_xls_path, index=False)
+      df_existing_customer_original=df_existing_customer_original
+      
 
-#       # pretty print last ouput tokens from bot
-#       return tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
   return app
 
