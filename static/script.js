@@ -1,0 +1,138 @@
+const formOpenBtn=document.querySelector("#form-open"),
+  home=document.querySelector(".home"),
+  formContainer=document.querySelector(".form_container"),
+  formCloseBtn=document.querySelector(".form_close"),
+  signupBtn=document.querySelector("#signup"),
+  loginBtn=document.querySelector("#login"),
+  pwShowHide=document.querySelectorAll(".pw_hide");
+
+  formOpenBtn.addEventListener("click", () => home.classList.add("show"))
+  formCloseBtn.addEventListener("click", () => home.classList.remove("show"))
+
+  pwShowHide.forEach((icon) =>{
+    icon.addEventListener("click", ()=>{
+      let getPwInput=icon.parentElement.querySelector("input");
+      if(getPwInput.type==="password"){
+        getPwInput.type="text";
+        icon.classList.replace("uil-eye-slash", "uil-eye");
+      }else{
+        getPwInput.type="password";
+        icon.classList.replace("uil-eye", "uil-eye-slash");
+      }
+    });
+ 
+  });
+
+  signupBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    formContainer.classList.add("active");
+  });
+
+  loginBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    formContainer.classList.remove("active");
+  })
+
+  function handleFormSubmission(formId, endpoint) {
+    const form = document.getElementById(formId);
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        console.log("Form submitted");
+
+        const emailField = form.querySelector("input[name='email']");
+        const passwordField = form.querySelector("input[name='password']");
+
+        if (!emailField || !passwordField) {
+            console.error("Email or password field not found in the form");
+            return;
+        }
+
+        const email = emailField.value;
+        const password = passwordField.value;
+
+        console.log('Email:', email);
+        console.log('Password:', password);
+
+        const formData = new FormData(form);
+        formData.append('email', email);
+        formData.append('password', password);
+
+        // Check if confirm_password field exists (for signup form)
+        const confirm_password_field = form.querySelector("input[name='confirm_password']");
+        if (confirm_password_field && form.classList.contains('registration-form')) {
+            const confirm_password = confirm_password_field.value;
+            console.log('Confirm Password:', confirm_password);
+            formData.append('confirm_password', confirm_password);
+        }
+
+        console.log(formData);
+
+        fetch(endpoint, {
+          method: 'POST',
+          body: formData
+        }).then(response => {
+          if (response.ok) {
+            console.log('Form submitted successfully');
+            return response.json();
+          } else {
+            console.error('Form submission failed');
+            return response.json();
+          }
+        }).then(data => {
+          console.log('Server response:', data);
+
+          
+        }).catch(error => {
+          console.error('Fetch error:', error);
+        });
+      });
+}
+
+// Add an event listener for the "Login Now" button
+const loginButton = document.getElementById('loginButton');
+loginButton.addEventListener('click', async function (event) {
+    event.preventDefault(); // Prevent the default form submission behavior
+
+    // Call your existing form submission logic
+    const loginSuccess = await handleFormSubmission("loginForm", "/login");
+
+    if (loginSuccess) {
+        // Redirect to the desired URL after successful login
+        window.location.href = '/form1'; // Replace with your desired URL
+    }
+});
+
+// Function to handle form submission asynchronously
+async function handleFormSubmission(formId, endpoint) {
+    const formData = new FormData(document.getElementById(formId));
+
+    try {
+        // Use fetch or your preferred method for submitting the form data to the server
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            body: formData
+            // Add other necessary options (headers, etc.)
+        });
+
+        // Check if the server response indicates success
+        if (response.ok) {
+            // You can perform additional checks based on the server response if needed
+            console.log('Form submitted successfully');
+            return true;
+        } else {
+            console.error('Form submission failed');
+            return false;
+        }
+    } catch (error) {
+        console.error('An error occurred during form submission:', error);
+        return false;
+    }
+}
+
+
+// Add an event listener for the "Signup Now" button
+const signupButton = document.getElementById('signupButton');
+signupButton.addEventListener('click', function () {
+    handleFormSubmission("signupForm", "/signup");
+});

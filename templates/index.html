@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Website with Login & Registration Form</title>
+    <link rel="stylesheet" href="static/style.css">
+    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css" />
+  </head>
+  <body>
+    <header class="header">
+      <nav class="nav">
+        <a href="#" class="nav_logo">Red Rain Kft.</a>
+  
+        <ul class="nav_items">
+          <li class="nav_item">
+            <a href="#" class="nav_link">Home</a>
+            <a href="#" class="nav_link">Product</a>
+            <a href="#" class="nav_link">Services</a>
+            <a href="#" class="nav_link">Contact</a>
+          </li> 
+        </ul>
+        <button class="button" id="form-open">Login</button>
+      </nav>
+    </header> 
+    <!-- Home -->
+    <section class="home">
+      <div class="form_container">
+        <i class="uil uil-times form_close"></i>
+        <div class="form login_form">
+          
+          <!-- Login -->
+
+          <form id="loginForm" action="{{ url_for('login') }}" method="post">
+            {{ form.hidden_tag() }}  
+            <h2>Login</h2>
+            <div class="input_box">
+              {{ form.email.label }} 
+              <div class="input_with_icon">
+                  <i class="uil uil-envelope-alt email"></i>
+                  {{ form.email(placeholder="Enter your email", required=true) }}
+              </div>
+              {% for error in form.email.errors %}
+                  <p class="error">{{ error }}</p>
+              {% endfor %}
+            </div>
+            <div class="input_box">
+              {{ form.password.label }}
+              <div class="input_with_icon">
+                <i class="uil uil-lock password"></i>
+                {{ form.password(placeholder="Enter your password", required=true) }}
+                <i class="uil uil-eye-slash pw_hide"></i>
+              </div>
+              {% for error in form.password.errors %}
+                  <p class="error">{{ error }}</p>
+              {% endfor %}
+            </div>
+            <div class="option_field">
+              <span class="checkbox">
+                <input type="checkbox" id="check">
+                <label for="check">Remember me</label>
+              </span>
+              <a href="#" class="forgot_pw">Forgot password?</a>
+
+            </div>
+            <button type="submit" class="button" id="loginButton">Login Now</button>
+            <div class="login_signup">
+              Don't have an account? <a href="#" id="signup">Signup</a>
+            </div>
+          </form>
+        </div>
+<!-- Signup form -->
+        <div class="form signup_form">
+          <form class="registration-form" id="signupForm" action="{{ url_for('signup') }}" method="post">
+            {{ form.hidden_tag() }}
+            <h2>Signup</h2>
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                <ul class="flash-messages">
+                  {% for message in messages %}
+                    <li>{{ message }}</li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+            {% endwith %}
+
+            <div class="input_box">
+              {{ form.email.label }} 
+              <div class="input_with_icon">
+                <i class="uil uil-envelope-alt email"></i>
+                {{ form.email(placeholder="Enter your email") }}
+              </div>
+              {% for error in form.email.errors %}
+                  <p class="error">{{ error }}</p>
+              {% endfor %}
+            </div>
+            <div class="input_box">
+              {{ form.password.label }}
+              <div class="input_with_icon">
+                <i class="uil uil-lock password"></i>
+                {{ form.password(placeholder="Create password") }}
+                <i class="uil uil-eye-slash pw_hide"></i>
+              </div>
+              {% for error in form.password.errors %}
+              <p class="error">{{ error }}</p>
+              {% endfor %}
+            </div>
+            <div class="input_box">
+              {{ form.confirm_password.label }}
+              <div class="input_with_icon">
+                <i class="uil uil-lock password"></i>
+                {{ form.confirm_password(placeholder="Confirm password") }}
+                <i class="uil uil-eye-slash pw_hide"></i>
+              </div>
+              {% for error in form.confirm_password.errors %}
+                <p class="error">{{ error }}</p>
+              {% endfor %}
+            </div>
+
+     
+            <div>
+              {{ form.csrf_token }}
+              <button class="button" id="signupButton">Signup Now</button>
+            <div class="login_signup">
+              Already have an account? <a href="#" id="login">Login</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+    <script src="static/script.js"></script>
+  </body>
+</html>
