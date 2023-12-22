@@ -10,10 +10,13 @@ from datetime import datetime
 import inflect
 from dotenv import load_dotenv, find_dotenv
 from ChatGPTpart import get_Chat_response
+from loadtoElephantSQL import upload_to_ElephantSQL
+import psycopg2
+from psycopg2 import sql
 
 
 
-def flask_app(existing_customers_xls_path, potential_customers_xls_path, general_services_file_path):
+def flask_app(general_services_file_path):
 
   app=Flask(__name__)
 
@@ -25,11 +28,19 @@ def flask_app(existing_customers_xls_path, potential_customers_xls_path, general
 
 
 
-  def data_preparation(existing_customers_xls_path, potential_customers_xls_path, general_services_file_path):
+  def data_preparation(general_services_file_path):
+    load_dotenv()
+    #database_url=os.getenv("DATABASE_URL")
+    database_url = 'postgres://omeakqpt:xUUfVIvuZMNPUookJJXGiq4vFAwcShil@flora.db.elephantsql.com/omeakqpt'
 
-    df_existing_customer_original=pd.read_excel(existing_customers_xls_path)
+
+    with psycopg2.connect(database_url) as connection:
+      sql_query = 'SELECT * FROM "orders"'
+      df_existing_customer_original = pd.read_sql(sql_query, connection)
+      sql_query2 = 'SELECT * FROM "questions_potentialcustomers"'
+      df_potential_customer = pd.read_sql(sql_query2, connection)
+    
     df_existing_customer=df_existing_customer_original.to_string(index=False)
-    df_potential_customer=pd.read_excel(potential_customers_xls_path)
 
     doc=docx.Document(general_services_file_path)
     full_text=""
@@ -44,7 +55,7 @@ def flask_app(existing_customers_xls_path, potential_customers_xls_path, general
 #-----------------------------------------------------------------------------------------------
 
   
-  df_existing_customer_original, df_existing_customer, df_potential_customer, word_text=data_preparation(existing_customers_xls_path, potential_customers_xls_path, general_services_file_path)
+  df_existing_customer_original, df_existing_customer, df_potential_customer, word_text=data_preparation(general_services_file_path)
    
   context = [
   
@@ -87,8 +98,7 @@ def flask_app(existing_customers_xls_path, potential_customers_xls_path, general
   def messengerchat():
     nonlocal text
     if text!="":
-      output_file_creation(df_existing_customer_original, df_potential_customer, text, existing_customers_xls_path,
-                potential_customers_xls_path)
+      output_file_creation(df_existing_customer_original, df_potential_customer, text)
       text=""
     return render_template('messengerchat.html')
 
@@ -112,33 +122,32 @@ def flask_app(existing_customers_xls_path, potential_customers_xls_path, general
 #-----------------------------------------------------------------------------------------------
 
 
-  def output_file_creation(df_existing_customer_original, df_potential_customer, text, existing_customers_xls_path,
-                potential_customers_xls_path):
+  def output_file_creation(df_existing_customer_original, df_potential_customer, text):
     
+    database_url = 'postgres://omeakqpt:xUUfVIvuZMNPUookJJXGiq4vFAwcShil@flora.db.elephantsql.com/omeakqpt'
+
     current_date = datetime.now().date()
     current_date = current_date.strftime("%Y-%m-%d")
     new_column_header = 'Chat'+ current_date
     
-    spotting_identifier=df_existing_customer_original["Customer Number"].apply(lambda x: text.lower().find(str(x).lower()) !=-1)
-    print(spotting_identifier)
+    spotting_identifier=df_existing_customer_original["customernumber"].apply(lambda x: text.lower().find(str(x).lower()) !=-1)
+
     if not any(spotting_identifier)==True:
-      
+      table_name='questions_potentialcustomers'
       if new_column_header not in df_potential_customer.columns.tolist():
         df_potential_customer[new_column_header]=None
         df_potential_customer.loc[0, new_column_header]=''
         df_potential_customer.loc[0, new_column_header]+=text
-        
-        df_potential_customer.to_excel(potential_customers_xls_path, index=False)
+        upload_to_ElephantSQL(database_url, table_name, df_potential_customer)
         df_potential_customer=df_potential_customer
       else:
         last_not_empty_index=df_potential_customer[new_column_header].last_valid_index()
         df_potential_customer.loc[last_not_empty_index+1, new_column_header]=''
         df_potential_customer.loc[last_not_empty_index+1, new_column_header]+=text
-        df_potential_customer.to_excel(potential_customers_xls_path, index=False)
+        upload_to_ElephantSQL(database_url, table_name, df_potential_customer)
         df_potential_customer=df_potential_customer
       
     else:
-      
       if new_column_header not in df_existing_customer_original.columns.tolist():
         df_existing_customer_original[new_column_header]=''
   
@@ -146,7 +155,8 @@ def flask_app(existing_customers_xls_path, potential_customers_xls_path, general
 
       existing_value = str(df_existing_customer_original.loc[row, new_column_header]) if not pd.isna(df_existing_customer_original.loc[row, new_column_header]) else ""
       df_existing_customer_original.loc[row, new_column_header]=existing_value + text
-      df_existing_customer_original.to_excel(existing_customers_xls_path, index=False)
+      table_name='order_existing_clients'
+      upload_to_ElephantSQL(database_url, table_name, df_existing_customer_original)
       df_existing_customer_original=df_existing_customer_original
       
 
