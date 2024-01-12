@@ -14,9 +14,15 @@ from loadtoElephantSQL import upload_to_ElephantSQL
 import psycopg2
 from psycopg2 import sql
 
+import io
+from googleapiclient.discovery import build
+from google.oauth2 import service_account
+from googleapiclient.http import MediaIoBaseDownload
+from docx import Document
 
 
-def flask_app(general_services_file_path):
+
+def flask_app():
 
   app=Flask(__name__)
 
@@ -28,21 +34,54 @@ def flask_app(general_services_file_path):
 
 
 
-  def data_preparation(general_services_file_path):
+  def data_preparation():
     load_dotenv()
-    #database_url=os.getenv("DATABASE_URL")
-    database_url = 'postgres://omeakqpt:xUUfVIvuZMNPUookJJXGiq4vFAwcShil@flora.db.elephantsql.com/omeakqpt'
-
-
+    database_url=os.getenv("DATABASE_URL")
+    
     with psycopg2.connect(database_url) as connection:
-      sql_query = 'SELECT * FROM "orders"'
-      df_existing_customer_original = pd.read_sql(sql_query, connection)
       sql_query2 = 'SELECT * FROM "questions_potentialcustomers"'
       df_potential_customer = pd.read_sql(sql_query2, connection)
-    
-    df_existing_customer=df_existing_customer_original.to_string(index=False)
+      sql_query = 'SELECT * FROM "order_existing_clients"'
+      df_existing_customer_original = pd.read_sql(sql_query, connection)
+      
+      with connection.cursor() as cursor:
+          # Execute the SQL query
+          sql_query = 'SELECT * FROM "orders"'
+          cursor.execute(sql_query)
 
-    doc=docx.Document(general_services_file_path)
+          # Fetch all rows
+          rows = cursor.fetchall()
+
+    # Extract column names
+    columns = [desc[0] for desc in cursor.description]
+
+    # Format data as a string
+    data_rows = []
+    for row in rows:
+        data_rows.append(" | ".join(map(str, row)))
+
+    # Create the final string
+    df_existing_customer = " | ".join(columns) + "\n" + "\n".join(data_rows)
+
+
+    
+    #DOWNLOAD AND CREATE THE WORD FILE
+
+    SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+    credentials = service_account.Credentials.from_service_account_file('deployment-391914-2de8528d9202.json', scopes=SCOPES)
+    file_id = '152GW4g2WrNjGeaFuhP7-RCX7YWDPM4GE'
+    service = build('drive', 'v3', credentials=credentials)
+    request = service.files().get_media(fileId=file_id)
+
+    with open('Cars_services_downloaded.docx', 'wb') as f:
+        downloader = MediaIoBaseDownload(f, request)
+        done = False
+        while done is False:
+            status, done = downloader.next_chunk()
+
+    # Read the content of the Word document using python-docx
+    doc = Document('Cars_services_downloaded.docx')
+
     full_text=""
     for paragraph in doc.paragraphs:
       full_text+=paragraph.text+ "\n"
@@ -55,7 +94,7 @@ def flask_app(general_services_file_path):
 #-----------------------------------------------------------------------------------------------
 
   
-  df_existing_customer_original, df_existing_customer, df_potential_customer, word_text=data_preparation(general_services_file_path)
+  df_existing_customer_original, df_existing_customer, df_potential_customer, word_text=data_preparation()
    
   context = [
   
@@ -124,7 +163,9 @@ def flask_app(general_services_file_path):
 
   def output_file_creation(df_existing_customer_original, df_potential_customer, text):
     
-    database_url = 'postgres://omeakqpt:xUUfVIvuZMNPUookJJXGiq4vFAwcShil@flora.db.elephantsql.com/omeakqpt'
+    
+    load_dotenv()
+    database_url = os.environ.get('DATABASE_URL')
 
     current_date = datetime.now().date()
     current_date = current_date.strftime("%Y-%m-%d")

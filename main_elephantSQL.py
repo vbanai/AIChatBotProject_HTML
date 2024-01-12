@@ -16,12 +16,8 @@ from psycopg2 import sql
 load_dotenv()
 openai.api_key=os.getenv("OPENAI_KEY")
 
-general_services_file_path = r"C:\Users\vbanai\Documents\Programming\Dezsi porject\ChatFrontEnd\tutorial4\Cars_services.docx"
-existing_customers_xls_path=r"C:\Users\vbanai\Documents\Programming\Dezsi porject\ChatFrontEnd\tutorial4\Order_existing_clients.xlsx"
-potential_customers_xls_path=r"C:\Users\vbanai\Documents\Programming\Dezsi porject\ChatFrontEnd\tutorial4\Questions_PotentialCustomers.xlsx"
 
-
-app = flask_app(general_services_file_path)
+app = flask_app()
 
 if __name__ == "__main__":
     app.run(debug=True)
