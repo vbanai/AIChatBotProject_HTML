@@ -9,7 +9,7 @@ import pandas as pd
 from datetime import datetime
 import inflect
 from dotenv import load_dotenv, find_dotenv
-from app_elephantSQL import flask_app
+from app import flask_app
 import psycopg2
 from psycopg2 import sql
 
@@ -20,7 +20,7 @@ openai.api_key=os.getenv("OPENAI_KEY")
 app = flask_app()
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
 
 
 
