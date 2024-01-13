@@ -10,7 +10,8 @@ import inflect
 from dotenv import load_dotenv, find_dotenv
 
 
-load_dotenv()
+if os.getenv("FLASK_ENV") == "development":
+      load_dotenv()
 openai.api_key=os.getenv("OPENAI_KEY")
 
 

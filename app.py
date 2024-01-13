@@ -19,6 +19,7 @@ from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from googleapiclient.http import MediaIoBaseDownload
 from docx import Document
+import tempfile
 
 
 
@@ -35,8 +36,12 @@ def flask_app():
 
 
   def data_preparation():
-    load_dotenv()
+    if os.getenv("FLASK_ENV") == "development":
+      load_dotenv()
     database_url=os.getenv("DATABASE_URL")
+    private_key = os.getenv("PRIVATE_KEY")
+    client_email = os.getenv("CLIENT_EMAIL")
+    
     
     with psycopg2.connect(database_url) as connection:
       sql_query2 = 'SELECT * FROM "questions_potentialcustomers"'
@@ -66,14 +71,41 @@ def flask_app():
 
     
     #DOWNLOAD AND CREATE THE WORD FILE
+    project_id = "deployment-391914"
+    private_key_id = "2de8528d9202cd246961502047094035cfd851fb"
+    client_id = "104118424303777600500"
+    auth_uri = "https://accounts.google.com/o/oauth2/auth"
+    token_uri = "https://oauth2.googleapis.com/token"
+    auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"
+    client_x509_cert_url = "https://www.googleapis.com/robot/v1/metadata/x509/textfile-aichatbot%40deployment-391914.iam.gserviceaccount.com"
+    universe_domain = "googleapis.com"
+
 
     SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
-    credentials = service_account.Credentials.from_service_account_file('deployment-391914-2de8528d9202.json', scopes=SCOPES)
+    credentials = service_account.Credentials.from_service_account_info(
+      {
+          "type": "service_account",
+          "project_id": project_id,
+          "private_key_id": private_key_id,
+          "private_key": private_key,
+          "client_email": client_email,
+          "client_id": client_id,
+          "auth_uri": auth_uri,
+          "token_uri": token_uri,
+          "auth_provider_x509_cert_url": auth_provider_x509_cert_url,
+          "client_x509_cert_url": client_x509_cert_url,
+          "universe_domain": universe_domain,
+      },
+      scopes=SCOPES)
     file_id = '152GW4g2WrNjGeaFuhP7-RCX7YWDPM4GE'
     service = build('drive', 'v3', credentials=credentials)
     request = service.files().get_media(fileId=file_id)
 
-    with open('Cars_services_downloaded.docx', 'wb') as f:
+    temp_folder = os.path.join(tempfile.gettempdir(), 'my_temp_folder')
+    os.makedirs(temp_folder, exist_ok=True)
+    file_path = os.path.join(temp_folder, 'Cars_services_downloaded.docx')
+
+    with open(file_path, 'wb') as f:
         downloader = MediaIoBaseDownload(f, request)
         done = False
         while done is False:
@@ -86,6 +118,8 @@ def flask_app():
     for paragraph in doc.paragraphs:
       full_text+=paragraph.text+ "\n"
     word_text=full_text.strip()
+
+    os.remove(file_path)
 
     return df_existing_customer_original, df_existing_customer, df_potential_customer, word_text
 
