@@ -22,11 +22,10 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Rust and Cargo
+      - name: Set up Rust and Cargo
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> $GITHUB_ENV
-          source $HOME/.cargo/env
+          export PATH="$HOME/.cargo/bin:$PATH"
 
       - name: Create and start virtual environment
         run: |
