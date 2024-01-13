@@ -37,6 +37,7 @@ jobs:
         with:
           profile: minimal
           override: true
+        
 
       - name: Zip artifact for deployment
         run: zip release.zip ./* -r
