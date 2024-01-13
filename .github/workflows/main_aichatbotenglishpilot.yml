@@ -25,7 +25,6 @@ jobs:
       - name: Install Rust and Cargo
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          export PATH="$HOME/.cargo/bin:$PATH"
           source $HOME/.cargo/env
 
       - name: Create and start virtual environment
