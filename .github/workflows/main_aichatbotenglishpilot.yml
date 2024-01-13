@@ -22,6 +22,11 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Install Rust and Cargo
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          export PATH="$HOME/.cargo/bin:$PATH"
+
       - name: Create and start virtual environment
         run: |
           python -m venv venv
@@ -31,13 +36,6 @@ jobs:
         run: pip install -r requirements.txt --no-cache-dir
         
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
-
-      - name: Install Rust and Cargo
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          override: true
-        
 
       - name: Zip artifact for deployment
         run: zip release.zip ./* -r
