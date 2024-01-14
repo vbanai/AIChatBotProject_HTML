@@ -23,7 +23,7 @@ import tempfile
 
 
 
-def flask_app():
+def flask_app(host=None, port=None):
 
   app=Flask(__name__)
 
