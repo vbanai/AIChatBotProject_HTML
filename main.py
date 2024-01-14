@@ -1,8 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 import speech_recognition as sr
 import os
-import pandas as pd
-import os
 import openai
 import docx
 import pandas as pd

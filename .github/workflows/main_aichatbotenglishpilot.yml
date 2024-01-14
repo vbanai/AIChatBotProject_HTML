@@ -21,33 +21,6 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: '3.10'
-
-      - name: Set up Rust environment variables
-        run: |
-          echo 'export CARGO_HOME=$HOME/.cargo' >> $HOME/.bashrc
-          echo 'export RUSTUP_HOME=$HOME/.rustup' >> $HOME/.bashrc
-          echo 'export PATH=$CARGO_HOME/bin:$PATH' >> $HOME/.bashrc
-          source $HOME/.bashrc
-
-      - name: Install Rust and Cargo
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          export PATH="$HOME/.cargo/bin:$PATH"
-      
-      - name: Update GitHub Actions runner
-        run: |
-          mkdir -p _actions-runner
-          cd _actions-runner
-          curl -O -L https://github.com/actions/runner/releases/download/v2.296.1/actions-runner-linux-x64-2.296.1.tar.gz
-          tar xzf ./actions-runner-linux-x64-2.296.1.tar.gz
-  
-        
-      
-      - name: Print Rust and Cargo versions
-        run: |
-          rustc --version
-          cargo --version
-        
       
       - name: Install dependencies
         run: pip install -r requirements.txt --no-cache-dir

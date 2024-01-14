@@ -1,5 +1,0 @@
-edition = "2021"
-date = "2021-12-30"
-profiles = { "test": { "incremental": false } }
-resolver = "2"
-default-channel = "1.59.0"
