@@ -18,6 +18,7 @@ from google.oauth2 import service_account
 from googleapiclient.http import MediaIoBaseDownload
 from docx import Document
 import tempfile
+import logging
 
 
 
@@ -36,7 +37,7 @@ def flask_app(host=None, port=None):
 
   def data_preparation():
     if os.getenv("FLASK_ENV") == "development":
-      print("Entered the if block###########################")
+      logging.debug("Entered the if block###########################")
       load_dotenv()
       database_url=os.getenv("DATABASE_URL")
       
@@ -48,7 +49,7 @@ def flask_app(host=None, port=None):
       
       client_email = os.getenv("CLIENT_EMAIL")
     else:
-      print("Entered the else block###########################")
+      logging.debug("Entered the else block###########################")
       # Retrieve the private key from the environment variable
       private_key_str = os.environ.get('PRIVATE_KEY')
       print("Private Key String:", private_key_str)
