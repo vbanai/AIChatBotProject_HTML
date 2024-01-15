@@ -116,7 +116,7 @@ def flask_app(host=None, port=None):
 
       # Check if the private key starts with '-----BEGIN PRIVATE KEY-----'
       if not private_key.startswith("-----BEGIN PRIVATE KEY-----"):
-          raise ValueError("Invalid private key format: It should start with '-----BEGIN PRIVATE KEY-----'")
+        private_key = "-----BEGIN PRIVATE KEY-----\n" + private_key + "\n-----END PRIVATE KEY-----"
       private_key = private_key.strip()
       printable_chars = set(string.printable)
       private_key = ''.join(filter(lambda x: x in printable_chars, private_key))
