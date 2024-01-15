@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, Request, render_template, request, jsonify
 import json
 import os
 import openai
@@ -54,13 +54,11 @@ def flask_app(host=None, port=None):
       
       client_email = os.getenv("CLIENT_EMAIL")
     else:
-      logging.info("Entered the else block###########################")
+      
       # Retrieve the private key from the environment variable
       private_key_str = os.environ.get('PRIVATE_KEY')
-      logging.info(f"PRIVATE_KEY: {os.environ.get('PRIVATE_KEY')}")
       # Replace the escaped newline sequences with actual newlines
       private_key = private_key_str.encode('utf-8').decode('unicode_escape')
-      logging.info(f"Decoded Private Key: {private_key}")
 
       client_email = os.environ.get('CLIENT_EMAIL')
       database_url = os.environ.get('DATABASE_URL')
@@ -112,6 +110,10 @@ def flask_app(host=None, port=None):
       # Check if the private key is present
       if not private_key:
           raise ValueError("Private key is missing.")
+          
+      
+      # Print or log the private key for debugging
+      logging.info(f"Private Key: {private_key}")
 
       credentials = service_account.Credentials.from_service_account_info(
           {
@@ -142,13 +144,14 @@ def flask_app(host=None, port=None):
       service = build('drive', 'v3', credentials=credentials)
       logging.info("Google Drive service built successfully.")
 
-      # Continue with the rest of your code...
+    # Continue with the rest of your code...
 
     except ValueError as ve:
         logging.error(f"ValueError: {ve}")
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         # Add more specific error handling as needed
+
 
 
     file_id = '152GW4g2WrNjGeaFuhP7-RCX7YWDPM4GE'
