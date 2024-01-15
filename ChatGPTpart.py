@@ -11,9 +11,11 @@ from dotenv import load_dotenv, find_dotenv
 
 
 if os.getenv("FLASK_ENV") == "development":
-      load_dotenv()
-openai.api_key=os.getenv("OPENAI_KEY")
-
+    load_dotenv()
+    openai.api_key = os.getenv("OPENAI_KEY")
+else:
+    
+    openai.api_key = os.environ.get('OPENAI_KEY')
 
 
 def get_completion_from_messages(messages, model="gpt-3.5-turbo", temperature=0):

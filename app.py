@@ -54,7 +54,7 @@ def flask_app(host=None, port=None):
       private_key = private_key_str.replace('\\n', '\n')
 
       client_email = os.environ.get('CLIENT_EMAIL')
-   
+      database_url = os.environ.get('DATABASE_URL')
     
     with psycopg2.connect(database_url) as connection:
       sql_query2 = 'SELECT * FROM "questions_potentialcustomers"'
