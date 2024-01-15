@@ -18,7 +18,7 @@ from google.oauth2 import service_account
 from googleapiclient.http import MediaIoBaseDownload
 from docx import Document
 import tempfile
-
+import base64
 import logging
 
 
@@ -117,9 +117,13 @@ def flask_app(host=None, port=None):
       # Check if the private key starts with '-----BEGIN PRIVATE KEY-----'
       if not private_key.startswith("-----BEGIN PRIVATE KEY-----"):
         private_key = "-----BEGIN PRIVATE KEY-----\n" + private_key + "\n-----END PRIVATE KEY-----"
+      
+      private_key = base64.b64decode(private_key)
+
       private_key = private_key.strip()
       printable_chars = set(string.printable)
       private_key = ''.join(filter(lambda x: x in printable_chars, private_key))
+
       credentials = service_account.Credentials.from_service_account_info(
           {
               "type": "service_account",
