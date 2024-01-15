@@ -49,7 +49,7 @@ def flask_app(host=None, port=None):
     else:
       # Retrieve the private key from the environment variable
       private_key_str = os.environ.get('PRIVATE_KEY')
-
+      print("Private Key String:", private_key_str)
       # Replace the escaped newline sequences with actual newlines
       private_key = private_key_str.encode('utf-8').decode('unicode_escape')
 
