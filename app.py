@@ -105,6 +105,7 @@ def flask_app(host=None, port=None):
 
     SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
     
+    credentials = None
     try:
       credentials = service_account.Credentials.from_service_account_info(
         {
