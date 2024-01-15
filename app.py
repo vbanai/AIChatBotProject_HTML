@@ -1,7 +1,5 @@
 from flask import Flask, render_template, request, jsonify
-
-import os
-import pandas as pd
+import json
 import os
 import openai
 import docx
@@ -23,6 +21,7 @@ import tempfile
 
 
 
+
 def flask_app(host=None, port=None):
 
   app=Flask(__name__)
@@ -38,10 +37,24 @@ def flask_app(host=None, port=None):
   def data_preparation():
     if os.getenv("FLASK_ENV") == "development":
       load_dotenv()
-    database_url=os.getenv("DATABASE_URL")
-    private_key = os.getenv("PRIVATE_KEY")
-    client_email = os.getenv("CLIENT_EMAIL")
-    
+      database_url=os.getenv("DATABASE_URL")
+      
+      with open("private_key.txt", "r") as file:
+        private_key = file.read()
+
+      # Explicitly decode the private key using UTF-8
+      private_key = private_key.encode('utf-8').decode('unicode_escape')
+      
+      client_email = os.getenv("CLIENT_EMAIL")
+    else:
+      # Retrieve the private key from the environment variable
+      private_key_str = os.environ.get('PRIVATE_KEY')
+
+      # Replace the escaped newline sequences with actual newlines
+      private_key = private_key_str.replace('\\n', '\n')
+
+      client_email = os.environ.get('CLIENT_EMAIL')
+   
     
     with psycopg2.connect(database_url) as connection:
       sql_query2 = 'SELECT * FROM "questions_potentialcustomers"'
@@ -82,6 +95,7 @@ def flask_app(host=None, port=None):
 
 
     SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+    
     credentials = service_account.Credentials.from_service_account_info(
       {
           "type": "service_account",
@@ -97,6 +111,8 @@ def flask_app(host=None, port=None):
           "universe_domain": universe_domain,
       },
       scopes=SCOPES)
+   
+
     file_id = '152GW4g2WrNjGeaFuhP7-RCX7YWDPM4GE'
     service = build('drive', 'v3', credentials=credentials)
     request = service.files().get_media(fileId=file_id)
@@ -112,7 +128,7 @@ def flask_app(host=None, port=None):
             status, done = downloader.next_chunk()
 
     # Read the content of the Word document using python-docx
-    doc = Document('Cars_services_downloaded.docx')
+    doc = Document(file_path)
 
     full_text=""
     for paragraph in doc.paragraphs:
