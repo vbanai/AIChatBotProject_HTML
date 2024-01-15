@@ -105,22 +105,44 @@ def flask_app(host=None, port=None):
 
     SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
     
-    credentials = service_account.Credentials.from_service_account_info(
-      {
-          "type": "service_account",
-          "project_id": project_id,
-          "private_key_id": private_key_id,
-          "private_key": private_key,
-          "client_email": client_email,
-          "client_id": client_id,
-          "auth_uri": auth_uri,
-          "token_uri": token_uri,
-          "auth_provider_x509_cert_url": auth_provider_x509_cert_url,
-          "client_x509_cert_url": client_x509_cert_url,
-          "universe_domain": universe_domain,
-      },
-      scopes=SCOPES)
-   
+    try:
+      # Creating credentials
+      logging.info("Creating credentials...")
+      credentials = service_account.Credentials.from_service_account_info(
+          {
+              "type": "service_account",
+              "project_id": project_id,
+              "private_key_id": private_key_id,
+              "private_key": private_key,
+              "client_email": client_email,
+              "client_id": client_id,
+              "auth_uri": auth_uri,
+              "token_uri": token_uri,
+              "auth_provider_x509_cert_url": auth_provider_x509_cert_url,
+              "client_x509_cert_url": client_x509_cert_url,
+              "universe_domain": universe_domain,
+          },
+          scopes=SCOPES,
+      )
+      logging.info("Credentials created successfully.")
+
+      # Check if the credentials are expired, and refresh if necessary
+      if credentials.expired:
+          logging.info("Credentials are expired. Refreshing...")
+          credentials.refresh(Request())
+          logging.info("Credentials refreshed successfully.")
+
+      # Build Google Drive service
+      logging.info("Building Google Drive service...")
+      service = build('drive', 'v3', credentials=credentials)
+      logging.info("Google Drive service built successfully.")
+
+      # Continue with the rest of your code...
+
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        # Add more specific error handling as needed
+    
 
     file_id = '152GW4g2WrNjGeaFuhP7-RCX7YWDPM4GE'
     service = build('drive', 'v3', credentials=credentials)
