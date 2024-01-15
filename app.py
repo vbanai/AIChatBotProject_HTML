@@ -113,12 +113,20 @@ def flask_app(host=None, port=None):
       
       # Log the private key for debugging
       logging.info(f"Private Key: {private_key}")
+      private_key = private_key.strip()
+      
+      # Remove any non-printable characters
+      printable_chars = set(string.printable)
+      private_key = ''.join(filter(lambda x: x in printable_chars, private_key))
 
-      # Check if the private key starts with '-----BEGIN PRIVATE KEY-----'
+
       if not private_key.startswith("-----BEGIN PRIVATE KEY-----"):
         private_key = "-----BEGIN PRIVATE KEY-----\n" + private_key + "\n-----END PRIVATE KEY-----"
-      private_key = private_key.strip()
-      private_key = base64.b64decode(private_key.encode('utf-8'))
+      
+      try:
+        decoded_key = base64.b64decode(private_key.encode('utf-8'))
+      except Exception as e:
+        print(f"Error decoding private key: {e}")
 
       credentials = service_account.Credentials.from_service_account_info(
           {
