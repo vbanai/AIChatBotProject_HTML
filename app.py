@@ -117,16 +117,8 @@ def flask_app(host=None, port=None):
       # Check if the private key starts with '-----BEGIN PRIVATE KEY-----'
       if not private_key.startswith("-----BEGIN PRIVATE KEY-----"):
         private_key = "-----BEGIN PRIVATE KEY-----\n" + private_key + "\n-----END PRIVATE KEY-----"
-      
-      try:
-        private_key_bytes = base64.b64decode(private_key.encode('utf-8'))
-        private_key = private_key_bytes.decode('utf-8')
-      except base64.binascii.Error as e:
-        raise ValueError("Invalid base64 encoding for private key") from e
-
       private_key = private_key.strip()
-      printable_chars = set(string.printable)
-      private_key = ''.join(filter(lambda x: x in printable_chars, private_key))
+      private_key = base64.b64decode(private_key.encode('utf-8'))
 
       credentials = service_account.Credentials.from_service_account_info(
           {
