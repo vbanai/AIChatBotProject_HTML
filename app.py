@@ -1,3 +1,4 @@
+import string
 from flask import Flask, render_template, request, jsonify
 import json
 import os
@@ -40,132 +41,129 @@ def flask_app(host=None, port=None):
 
 
   def data_preparation():
-    try:
-      if os.getenv("FLASK_ENV") == "development":
-        
-        load_dotenv()
-        database_url=os.getenv("DATABASE_URL")
-        
-        with open("private_key.txt", "r") as file:
-          private_key = file.read()
-
-        # Explicitly decode the private key using UTF-8
-        private_key = private_key.encode('utf-8').decode('unicode_escape')
-        
-        client_email = os.getenv("CLIENT_EMAIL")
-      else:
-      
-        # Retrieve the private key from the environment variable
-        private_key_str = os.environ.get('PRIVATE_KEY')
-        logging.info(f"PRIVATE_KEY: {os.environ.get('PRIVATE_KEY')}")
-        # Replace the escaped newline sequences with actual newlines
-        private_key = private_key_str.encode('utf-8').decode('unicode_escape')
-        logging.info(f"Decoded Private Key: {private_key}")
-
-        client_email = os.environ.get('CLIENT_EMAIL')
-        database_url = os.environ.get('DATABASE_URL')
     
-      with psycopg2.connect(database_url) as connection:
-        sql_query2 = 'SELECT * FROM "questions_potentialcustomers"'
-        df_potential_customer = pd.read_sql(sql_query2, connection)
-        sql_query = 'SELECT * FROM "order_existing_clients"'
-        df_existing_customer_original = pd.read_sql(sql_query, connection)
-        
-        with connection.cursor() as cursor:
-            # Execute the SQL query
-            sql_query = 'SELECT * FROM "orders"'
-            cursor.execute(sql_query)
+    if os.getenv("FLASK_ENV") == "development":
+      load_dotenv()
+      database_url=os.getenv("DATABASE_URL")
+      
+      with open("private_key.txt", "r") as file:
+        private_key = file.read()
 
-            # Fetch all rows
-            rows = cursor.fetchall()
+      # Explicitly decode the private key using UTF-8
+      private_key = private_key.encode('utf-8').decode('unicode_escape')
+      
+      client_email = os.getenv("CLIENT_EMAIL")
+    else:
+      # Retrieve the private key from the environment variable
+      private_key_str = os.environ.get('PRIVATE_KEY')
+      logging.info(f"PRIVATE_KEY: {os.environ.get('PRIVATE_KEY')}")
+      if not private_key_str.startswith("-----BEGIN PRIVATE KEY-----"):
+        private_key_str = "-----BEGIN PRIVATE KEY-----\n" + private_key_str + "\n-----END PRIVATE KEY-----"
 
-      # Extract column names
-      columns = [desc[0] for desc in cursor.description]
+      # Filter out any non-printable characters
+      printable_chars = set(string.printable)
+      private_key_str = ''.join(filter(lambda x: x in printable_chars, private_key_str))
 
-      # Format data as a string
-      data_rows = []
-      for row in rows:
-          data_rows.append(" | ".join(map(str, row)))
+      # Adjust padding
+      private_key_str += '=' * (4 - len(private_key_str) % 4)
 
-      # Create the final string
-      df_existing_customer = " | ".join(columns) + "\n" + "\n".join(data_rows)
+      logging.info(f"Adjusted Private Key: {private_key_str}")
 
+      # Replace the escaped newline sequences with actual newlines
+      private_key = private_key_str.encode('utf-8').decode('unicode_escape')
+      logging.info(f"Decoded Private Key: {private_key}")
 
+      client_email = os.environ.get('CLIENT_EMAIL')
+      database_url = os.environ.get('DATABASE_URL')
     
-      #DOWNLOAD AND CREATE THE WORD FILE
-      project_id = "deployment-391914"
-      private_key_id = "2de8528d9202cd246961502047094035cfd851fb"
-      client_id = "104118424303777600500"
-      auth_uri = "https://accounts.google.com/o/oauth2/auth"
-      token_uri = "https://oauth2.googleapis.com/token"
-      auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"
-      client_x509_cert_url = "https://www.googleapis.com/robot/v1/metadata/x509/textfile-aichatbot%40deployment-391914.iam.gserviceaccount.com"
-      universe_domain = "googleapis.com"
-
-
-      SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+    with psycopg2.connect(database_url) as connection:
+      sql_query2 = 'SELECT * FROM "questions_potentialcustomers"'
+      df_potential_customer = pd.read_sql(sql_query2, connection)
+      sql_query = 'SELECT * FROM "order_existing_clients"'
+      df_existing_customer_original = pd.read_sql(sql_query, connection)
       
-      credentials = None
-      
-      credentials = service_account.Credentials.from_service_account_info(
-        {
-          "type": "service_account",
-          "project_id": project_id,
-          "private_key_id": private_key_id,
-          "private_key": private_key,
-          "client_email": client_email,
-          "client_id": client_id,
-          "auth_uri": auth_uri,
-          "token_uri": token_uri,
-          "auth_provider_x509_cert_url": auth_provider_x509_cert_url,
-          "client_x509_cert_url": client_x509_cert_url,
-          "universe_domain": universe_domain,
-        },
-        scopes=SCOPES,
-      )
+      with connection.cursor() as cursor:
+          # Execute the SQL query
+          sql_query = 'SELECT * FROM "orders"'
+          cursor.execute(sql_query)
 
-      # Use credentials to make API requests
+          # Fetch all rows
+          rows = cursor.fetchall()
 
-   
-      
-      if credentials:
-      # Use credentials to make API requests
-        file_id = '152GW4g2WrNjGeaFuhP7-RCX7YWDPM4GE'
-        service = build('drive', 'v3', credentials=credentials)
-        request = service.files().get_media(fileId=file_id)
+    # Extract column names
+    columns = [desc[0] for desc in cursor.description]
 
-        temp_folder = os.path.join(tempfile.gettempdir(), 'my_temp_folder')
-        os.makedirs(temp_folder, exist_ok=True)
-        file_path = os.path.join(temp_folder, 'Cars_services_downloaded.docx')
+    # Format data as a string
+    data_rows = []
+    for row in rows:
+        data_rows.append(" | ".join(map(str, row)))
 
-        with open(file_path, 'wb') as f:
-          downloader = MediaIoBaseDownload(f, request)
-          done = False
-          while done is False:
-              status, done = downloader.next_chunk()
-    
+    # Create the final string
+    df_existing_customer = " | ".join(columns) + "\n" + "\n".join(data_rows)
+
 
     
+    #DOWNLOAD AND CREATE THE WORD FILE
+    project_id = "deployment-391914"
+    private_key_id = "2de8528d9202cd246961502047094035cfd851fb"
+    client_id = "104118424303777600500"
+    auth_uri = "https://accounts.google.com/o/oauth2/auth"
+    token_uri = "https://oauth2.googleapis.com/token"
+    auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"
+    client_x509_cert_url = "https://www.googleapis.com/robot/v1/metadata/x509/textfile-aichatbot%40deployment-391914.iam.gserviceaccount.com"
+    universe_domain = "googleapis.com"
 
-        # Read the content of the Word document using python-docx
-        doc = Document(file_path)
 
-        full_text=""
-        for paragraph in doc.paragraphs:
-          full_text+=paragraph.text+ "\n"
-        word_text=full_text.strip()
+    SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+    
+    
+    
+    credentials = service_account.Credentials.from_service_account_info(
+      {
+        "type": "service_account",
+        "project_id": project_id,
+        "private_key_id": private_key_id,
+        "private_key": private_key,
+        "client_email": client_email,
+        "client_id": client_id,
+        "auth_uri": auth_uri,
+        "token_uri": token_uri,
+        "auth_provider_x509_cert_url": auth_provider_x509_cert_url,
+        "client_x509_cert_url": client_x509_cert_url,
+        "universe_domain": universe_domain,
+      },
+      scopes=SCOPES,
+    )
 
-        os.remove(file_path)
+    # Use credentials to make API requests
 
-        return df_existing_customer_original, df_existing_customer, df_potential_customer, word_text
-    except exceptions.GoogleAuthError as e:
-          # Log the exception for debugging purposes
-          logging.error(f"Error creating credentials: {e}")
-          return None
-    except Exception as e:
-        # Log the exception for debugging purposes
-        logging.error(f"An error occurred: {e}")
-        return None
+      
+
+    file_id = '152GW4g2WrNjGeaFuhP7-RCX7YWDPM4GE'
+    service = build('drive', 'v3', credentials=credentials)
+    request = service.files().get_media(fileId=file_id)
+
+    temp_folder = os.path.join(tempfile.gettempdir(), 'my_temp_folder')
+    os.makedirs(temp_folder, exist_ok=True)
+    file_path = os.path.join(temp_folder, 'Cars_services_downloaded.docx')
+
+    with open(file_path, 'wb') as f:
+        downloader = MediaIoBaseDownload(f, request)
+        done = False
+        while done is False:
+            status, done = downloader.next_chunk()
+
+    # Read the content of the Word document using python-docx
+    doc = Document(file_path)
+
+    full_text=""
+    for paragraph in doc.paragraphs:
+      full_text+=paragraph.text+ "\n"
+    word_text=full_text.strip()
+
+    os.remove(file_path)
+
+    return df_existing_customer_original, df_existing_customer, df_potential_customer, word_text
 
 #-----------------------------------------------------------------------------------------------
 #             Important variables
