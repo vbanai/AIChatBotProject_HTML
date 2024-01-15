@@ -110,11 +110,14 @@ def flask_app(host=None, port=None):
       # Check if the private key is present
       if not private_key:
           raise ValueError("Private key is missing.")
-          
       
-      # Print or log the private key for debugging
+      # Log the private key for debugging
       logging.info(f"Private Key: {private_key}")
 
+      # Check if the private key starts with '-----BEGIN PRIVATE KEY-----'
+      if not private_key.startswith("-----BEGIN PRIVATE KEY-----"):
+          raise ValueError("Invalid private key format: It should start with '-----BEGIN PRIVATE KEY-----'")
+      
       credentials = service_account.Credentials.from_service_account_info(
           {
               "type": "service_account",
@@ -144,13 +147,14 @@ def flask_app(host=None, port=None):
       service = build('drive', 'v3', credentials=credentials)
       logging.info("Google Drive service built successfully.")
 
-    # Continue with the rest of your code...
+      # Continue with the rest of your code...
 
     except ValueError as ve:
         logging.error(f"ValueError: {ve}")
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         # Add more specific error handling as needed
+
 
 
 
