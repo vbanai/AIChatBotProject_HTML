@@ -1,4 +1,4 @@
-from flask import Flask, Request, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify
 import json
 import os
 import openai
@@ -11,14 +11,14 @@ from ChatGPTpart import get_Chat_response
 from loadtoElephantSQL import upload_to_ElephantSQL
 import psycopg2
 from psycopg2 import sql
-import string
+from google.auth import exceptions
 import io
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from googleapiclient.http import MediaIoBaseDownload
 from docx import Document
 import tempfile
-import base64
+
 import logging
 
 
@@ -54,11 +54,13 @@ def flask_app(host=None, port=None):
       
       client_email = os.getenv("CLIENT_EMAIL")
     else:
-      
+      logging.info("Entered the else block###########################")
       # Retrieve the private key from the environment variable
       private_key_str = os.environ.get('PRIVATE_KEY')
+      logging.info(f"PRIVATE_KEY: {os.environ.get('PRIVATE_KEY')}")
       # Replace the escaped newline sequences with actual newlines
       private_key = private_key_str.encode('utf-8').decode('unicode_escape')
+      logging.info(f"Decoded Private Key: {private_key}")
 
       client_email = os.environ.get('CLIENT_EMAIL')
       database_url = os.environ.get('DATABASE_URL')
@@ -104,69 +106,28 @@ def flask_app(host=None, port=None):
     SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
     
     try:
-      # Creating credentials
-      logging.info("Creating credentials...")
-
-      # Check if the private key is present
-      if not private_key:
-          raise ValueError("Private key is missing.")
-      
-      # Log the private key for debugging
-      logging.info(f"Private Key: {private_key}")
-      private_key = private_key.strip()
-      
-      # Remove any non-printable characters
-      printable_chars = set(string.printable)
-      private_key = ''.join(filter(lambda x: x in printable_chars, private_key))
-
-
-      if not private_key.startswith("-----BEGIN PRIVATE KEY-----"):
-        private_key = "-----BEGIN PRIVATE KEY-----\n" + private_key + "\n-----END PRIVATE KEY-----"
-      
-      try:
-        decoded_key = base64.b64decode(private_key.encode('utf-8'))
-      except Exception as e:
-        print(f"Error decoding private key: {e}")
-
       credentials = service_account.Credentials.from_service_account_info(
-          {
-              "type": "service_account",
-              "project_id": project_id,
-              "private_key_id": private_key_id,
-              "private_key": private_key,
-              "client_email": client_email,
-              "client_id": client_id,
-              "auth_uri": auth_uri,
-              "token_uri": token_uri,
-              "auth_provider_x509_cert_url": auth_provider_x509_cert_url,
-              "client_x509_cert_url": client_x509_cert_url,
-              "universe_domain": universe_domain,
-          },
-          scopes=SCOPES,
+        {
+          "type": "service_account",
+          "project_id": project_id,
+          "private_key_id": private_key_id,
+          "private_key": private_key,
+          "client_email": client_email,
+          "client_id": client_id,
+          "auth_uri": auth_uri,
+          "token_uri": token_uri,
+          "auth_provider_x509_cert_url": auth_provider_x509_cert_url,
+          "client_x509_cert_url": client_x509_cert_url,
+          "universe_domain": universe_domain,
+        },
+        scopes=SCOPES,
       )
-      logging.info("Credentials created successfully.")
 
-      # Check if the credentials are expired, and refresh if necessary
-      if credentials.expired:
-          logging.info("Credentials are expired. Refreshing...")
-          credentials.refresh(Request())
-          logging.info("Credentials refreshed successfully.")
+      # Use credentials to make API requests
 
-      # Build Google Drive service
-      logging.info("Building Google Drive service...")
-      service = build('drive', 'v3', credentials=credentials)
-      logging.info("Google Drive service built successfully.")
-
-      # Continue with the rest of your code...
-
-    except ValueError as ve:
-        logging.error(f"ValueError: {ve}")
-    except Exception as e:
-        logging.error(f"An error occurred: {e}")
-        # Add more specific error handling as needed
-
-
-
+    except exceptions.GoogleAuthError as e:
+      print(f"Error creating credentials: {e}")
+      
 
     file_id = '152GW4g2WrNjGeaFuhP7-RCX7YWDPM4GE'
     service = build('drive', 'v3', credentials=credentials)
