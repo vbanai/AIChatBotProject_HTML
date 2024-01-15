@@ -19,7 +19,7 @@ from googleapiclient.http import MediaIoBaseDownload
 from docx import Document
 import tempfile
 import logging
-
+logging.basicConfig(level=logging.DEBUG)
 
 
 
