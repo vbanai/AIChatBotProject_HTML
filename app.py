@@ -51,7 +51,7 @@ def flask_app(host=None, port=None):
       private_key_str = os.environ.get('PRIVATE_KEY')
 
       # Replace the escaped newline sequences with actual newlines
-      private_key = private_key_str.replace('\\n', '\n')
+      private_key = private_key_str.encode('utf-8').decode('unicode_escape')
 
       client_email = os.environ.get('CLIENT_EMAIL')
       database_url = os.environ.get('DATABASE_URL')
