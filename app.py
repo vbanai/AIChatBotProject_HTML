@@ -43,7 +43,6 @@ def flask_app(host=None, port=None):
     
     if os.getenv("FLASK_ENV") == "development":
       logging.info("Entered the if block###########################")
-      logging.warning("Entered the if block##############################")
       load_dotenv()
       database_url=os.getenv("DATABASE_URL")
       
@@ -56,12 +55,12 @@ def flask_app(host=None, port=None):
       client_email = os.getenv("CLIENT_EMAIL")
     else:
       logging.info("Entered the else block###########################")
-      logging.warning("Entered the else block###########################")
       # Retrieve the private key from the environment variable
       private_key_str = os.environ.get('PRIVATE_KEY')
-      print("Private Key String:", private_key_str)
+      logging.debug(f"PRIVATE_KEY: {os.environ.get('PRIVATE_KEY')}")
       # Replace the escaped newline sequences with actual newlines
       private_key = private_key_str.encode('utf-8').decode('unicode_escape')
+      logging.debug(f"Decoded Private Key: {private_key}")
 
       client_email = os.environ.get('CLIENT_EMAIL')
       database_url = os.environ.get('DATABASE_URL')
