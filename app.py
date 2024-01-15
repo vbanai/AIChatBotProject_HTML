@@ -108,6 +108,11 @@ def flask_app(host=None, port=None):
     try:
       # Creating credentials
       logging.info("Creating credentials...")
+
+      # Check if the private key is present
+      if not private_key:
+          raise ValueError("Private key is missing.")
+
       credentials = service_account.Credentials.from_service_account_info(
           {
               "type": "service_account",
@@ -139,10 +144,12 @@ def flask_app(host=None, port=None):
 
       # Continue with the rest of your code...
 
+    except ValueError as ve:
+        logging.error(f"ValueError: {ve}")
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         # Add more specific error handling as needed
-    
+
 
     file_id = '152GW4g2WrNjGeaFuhP7-RCX7YWDPM4GE'
     service = build('drive', 'v3', credentials=credentials)
