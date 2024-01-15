@@ -60,12 +60,12 @@ def flask_app(host=None, port=None):
       if not private_key_str.startswith("-----BEGIN PRIVATE KEY-----"):
         private_key_str = "-----BEGIN PRIVATE KEY-----\n" + private_key_str + "\n-----END PRIVATE KEY-----"
 
+      # Adjust padding
+      private_key_str += '=' * (4 - len(private_key_str) % 4)
+
       # Filter out any non-printable characters
       printable_chars = set(string.printable)
       private_key_str = ''.join(filter(lambda x: x in printable_chars, private_key_str))
-
-      # Adjust padding
-      private_key_str += '=' * (4 - len(private_key_str) % 4)
 
       logging.info(f"Adjusted Private Key: {private_key_str}")
 
