@@ -11,7 +11,7 @@ from ChatGPTpart import get_Chat_response
 from loadtoElephantSQL import upload_to_ElephantSQL
 import psycopg2
 from psycopg2 import sql
-
+import string
 import io
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
@@ -117,7 +117,9 @@ def flask_app(host=None, port=None):
       # Check if the private key starts with '-----BEGIN PRIVATE KEY-----'
       if not private_key.startswith("-----BEGIN PRIVATE KEY-----"):
           raise ValueError("Invalid private key format: It should start with '-----BEGIN PRIVATE KEY-----'")
-      
+      private_key = private_key.strip()
+      printable_chars = set(string.printable)
+      private_key = ''.join(filter(lambda x: x in printable_chars, private_key))
       credentials = service_account.Credentials.from_service_account_info(
           {
               "type": "service_account",
