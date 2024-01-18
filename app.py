@@ -15,12 +15,15 @@ from psycopg2 import sql
 from google.auth import exceptions
 import io
 from googleapiclient.discovery import build
-from google.oauth2 import service_account
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.http import MediaIoBaseDownload
 from docx import Document
 import tempfile
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine, text
+from google.oauth2 import service_account
+
+
 
 import logging
 
@@ -59,9 +62,7 @@ def flask_app(host=None, port=None):
     else:
       # Retrieve the private key from the environment variable
       #private_key_str = os.environ.get('PRIVATE_KEY')
-      private_key="""-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC9mb3dPTtsRIug\ntWLeGJ4uBpkUZu5HfFGXETJ24YSg3Pojy97cp0uf8+He6kSydPr1QYRBqMK/eQ1O\nIZkbJhOPtpb42H+pGQlH3++x2OPEQK2b8o+iKrMCYuf36ReQf7gL6FR3iA+24aWI\nXOTl3xASRlYUABypSyk4LKeDQOlHVCxwUZQ0xJNZSKgIsrc4Ko2+7NeT+jG4H1mN\ncI0/dyZMc1Kqe4zw5xoA0d1BMKSHORqwXrQi49EzUQ9wVsJ0htyvux/NHDaWicw8\nt0NZomoRpNUTgbYH+j+ERjZvlsfBNOOM8J72SpIOy327nfgAMudQ322LKNW1f8OH\npIvGy7+rAgMBAAECggEAC+vIHn2RTrWUmq5gIM5aPuyW4JiEMAxzmNSYLRW+E0GY\nAxSR1tY4XaTY6Jb0NzNxuZmJj+AYUC+m4LW640eAM8LR0gpsV5zfLE/t/NGodUtx\nXvyTGVzz7ZkVNE1i+BvmESGZEsod3gYCZ9HnaaieLkTFeFmopuBQUo7dzW8RLwHS\nuzRmf6VsVQr0lvvchLHcDaHRFGn90jwWQqDuVMLmkLX83E96BcuUCVU7eIO2Gn8L\nD7V5rqgSt5XfyomH2V6nePUtE/p7n0p12DznbxIow22COnKzes0Hp5Q9ZmJ+MYMC\nlqbJ09/hFbQIdhJoWsoBWd6c1vVao1X0pjP6/svR2QKBgQDlfiHUfkJDQA7GdLUw\nFEY2k0ddYvPVDiwUsOmF4p6sCIEncf7DIYp1CFH1uFI91Wg1Y6OqbcSSevepIkwI\nfLoljxDIx7N80ELeyh2QEvsZBIj35X31Gop1iS08ax/tIjK1/6RAhlWMbPbBboSW\nky3rPVMd2jGcAFthT92CwRA95wKBgQDTgAnxyMd5TzV7BddDiVWGx2G2/Kju8jjS\nAardtQOcUpkxRzP3pItDMEKsBTkXxKTM+UxUEK/6NyNmgME00ub+DQfAbaw+wKSr\nJvU4nT8XJlcd+xMz7jAUpPWA5LMBr6u0Gj2j0RRi3F8+UFNRhYZZVimsAE1YjeDa\nSW6dyvjPnQKBgQDY6+eYTpvdq2AL8GcPgip4DbCIMi9edN3v1OV3GyV2YTeLjHIO\nCdcxFmM6SzbZoa21wXADeWw0NS2B3pxV7WeaduebkUA0OzrqEcvt0jMsi5/YCkGL\n+8Fipf5vPKbZ49hhNboRD6kvahO39Po4xffCgp3c+tCnr6KwkehEXq82gwKBgGk8\nPzZ4AZDBscmZuWdYUR7z3BHxm5jxGwabX8pbBAXnL2ROmnPxAn4W6EWxf5vs81cu\nACWf+//TKaEaFYhUHC1yjFXZ/CdpMUYb504ZJ8g8AoLfZ8miDXhoL+PHZ65CG3xM\nxjjZknwyTI2z6BEbECMpdSipKdMTHTtf6FNJKA4dAoGAbk5S40kg44KsWwvMDsbV\nQGXivtynOvtkCoFbow57oWP2vUx1qWC7HgfMebbYtrDBV03uxqZsyLf24/0DbQ92\n/2gBYk0N+0Ta8z9abgSx2LnDbUt+aBAGSOqpHS3B5+B5osR/4DPVaCXPUCcTCV/h\nxnSntEmQPhM+OD9WSE3RuQ4=\n-----END PRIVATE KEY-----\n"""
-      
-
+      private_key=os.environ.get('PRIVATE_KEY')
       client_email = os.environ.get('CLIENT_EMAIL')
       database_url = os.environ.get('DATABASE_URL')
 
