@@ -186,7 +186,8 @@ def flask_app(host=None, port=None):
 
   @app.route("/messengerchat")
   def messengerchat():
-    nonlocal textvariable
+    if 'textvariable' not in session:
+      session['textvariable'] = ""
     if session['textvariable']!="":
       output_file_creation(df_existing_customer_original, df_potential_customer, session['textvariable'])
       session['textvariable']=""
@@ -208,13 +209,6 @@ def flask_app(host=None, port=None):
     context.append({'role':'assistant', 'content':f"{response}"})
     return response
   
-  @app.route("/robots933456.txt")
-  def robots_txt():
-    print("Handling /robots933456.txt request")
-    # Your route logic here
-
-    # You might also want to add a response to the request
-    return "This is the response for /robots933456.txt"
 
 #-----------------------------------------------------------------------------------------------
 #             Updating the databases with the new conversation
