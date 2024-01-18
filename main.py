@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request
 
 import os
 import openai
@@ -13,9 +13,6 @@ from psycopg2 import sql
 
 load_dotenv()
 openai.api_key=os.getenv("OPENAI_KEY")
-
-
-
 
 
 app = flask_app()
