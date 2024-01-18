@@ -22,6 +22,10 @@ import tempfile
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine, text
 from google.oauth2 import service_account
+import tempfile
+import zipfile
+import xml.etree.ElementTree as ET
+from azure.storage.blob import BlobServiceClient
 
 
 
@@ -50,20 +54,13 @@ def flask_app(host=None, port=None):
     if os.getenv("FLASK_ENV") == "development":
       
       load_dotenv()
-      database_url=os.getenv("DATABASE_URL")
-      
-      with open("private_key.txt", "r") as file:
-        private_key = file.read()
-
-      # Explicitly decode the private key using UTF-8
-      private_key = private_key.encode('utf-8').decode('unicode_escape')     
-      client_email = os.getenv("CLIENT_EMAIL")
+      connection_string = os.getenv("CONNECTION_STRING")
+      database_url = os.getenv('DATABASE_URL')
       
     else:
       # Retrieve the private key from the environment variable
       #private_key_str = os.environ.get('PRIVATE_KEY')
-      private_key=os.environ.get('PRIVATE_KEY')
-      client_email = os.environ.get('CLIENT_EMAIL')
+      connection_string = os.environ.get("CONNECTION_STRING")
       database_url = os.environ.get('DATABASE_URL')
 
     database_url=database_url.replace('postgres', 'postgresql')
@@ -97,66 +94,49 @@ def flask_app(host=None, port=None):
     df_existing_customer = " | ".join(columns) + "\n" + "\n".join(data_rows)
 
 
+    # CREATING THE TXT FILE FROM THE DOWNLOADED BLOB FILE
+
+    container_name = 'filefolder'
+    filename='Cars_services.docx'
+
+    blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+
+    blob_client = blob_service_client.get_blob_client(container=container_name, blob=filename)
+    blob_content = blob_client.download_blob().readall()
+
+    # Assuming blob_content contains the binary data of the Word file
+    word_content = blob_content
+
+    # Create a temporary file to save the Word content
+    temp_dir = tempfile.gettempdir()
+    temp_file_path = os.path.join(temp_dir, 'temp_word_file.docx')
+
+    with open(temp_file_path, 'wb') as temp_file:
+        temp_file.write(word_content)
+
+    # Open the Word file as a ZIP archive
+    with zipfile.ZipFile(temp_file_path, 'r') as zip_file:
+        # Extract the content of 'word/document.xml'
+        xml_content = zip_file.read('word/document.xml')
+
+    # Parse the XML content
+    xml_root = ET.fromstring(xml_content)
+
+    # Extract text content from paragraphs
+    text_content = []
+    for paragraph in xml_root.iter('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p'):
+        text_blob = ''.join(run.text for run in paragraph.iter('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t'))
+        text_content.append(text_blob)
+
+    # Print the extracted text content
+    word_text='\n'.join(text_content)
+
+    # Optionally, remove the temporary file after processing
+    os.remove(temp_file_path)
+
+
     
-    #DOWNLOAD AND CREATE THE WORD FILE
-    project_id = "deployment-391914"
-    private_key_id = "2de8528d9202cd246961502047094035cfd851fb"
-    client_id = "104118424303777600500"
-    auth_uri = "https://accounts.google.com/o/oauth2/auth"
-    token_uri = "https://oauth2.googleapis.com/token"
-    auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"
-    client_x509_cert_url = "https://www.googleapis.com/robot/v1/metadata/x509/textfile-aichatbot%40deployment-391914.iam.gserviceaccount.com"
-    universe_domain = "googleapis.com"
-
-
-    SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
     
-    
-    
-    credentials = service_account.Credentials.from_service_account_info(
-      {
-        "type": "service_account",
-        "project_id": project_id,
-        "private_key_id": private_key_id,
-        "private_key": private_key,
-        "client_email": client_email,
-        "client_id": client_id,
-        "auth_uri": auth_uri,
-        "token_uri": token_uri,
-        "auth_provider_x509_cert_url": auth_provider_x509_cert_url,
-        "client_x509_cert_url": client_x509_cert_url,
-        "universe_domain": universe_domain,
-      },
-      scopes=SCOPES,
-    )
-
-    # Use credentials to make API requests
-
-      
-
-    file_id = '152GW4g2WrNjGeaFuhP7-RCX7YWDPM4GE'
-    service = build('drive', 'v3', credentials=credentials)
-    request = service.files().get_media(fileId=file_id)
-
-    temp_folder = os.path.join(tempfile.gettempdir(), 'my_temp_folder')
-    os.makedirs(temp_folder, exist_ok=True)
-    file_path = os.path.join(temp_folder, 'Cars_services_downloaded.docx')
-
-    with open(file_path, 'wb') as f:
-        downloader = MediaIoBaseDownload(f, request)
-        done = False
-        while done is False:
-            status, done = downloader.next_chunk()
-
-    # Read the content of the Word document using python-docx
-    doc = Document(file_path)
-
-    full_text=""
-    for paragraph in doc.paragraphs:
-      full_text+=paragraph.text+ "\n"
-    word_text=full_text.strip()
-
-    os.remove(file_path)
     return df_existing_customer_original, df_existing_customer, df_potential_customer, word_text
 
 #-----------------------------------------------------------------------------------------------
