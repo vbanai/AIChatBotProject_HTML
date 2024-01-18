@@ -1,5 +1,5 @@
 import string
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, session, jsonify
 import json
 import os
 import openai
@@ -40,6 +40,7 @@ logging.basicConfig(filename=os.path.join(log_directory, 'app.log'), level=loggi
 def flask_app(host=None, port=None):
 
   app=Flask(__name__)
+  app.secret_key = os.getenv('FLASK_SECRET_KEY', os.urandom(24))
 
   textvariable=""
 
@@ -186,23 +187,24 @@ def flask_app(host=None, port=None):
   @app.route("/messengerchat")
   def messengerchat():
     nonlocal textvariable
-    if textvariable!="":
-      output_file_creation(df_existing_customer_original, df_potential_customer, textvariable)
-      textvariable=""
+    if session['textvariable']!="":
+      output_file_creation(df_existing_customer_original, df_potential_customer, session['textvariable'])
+      session['textvariable']=""
     return render_template('messengerchat.html')
 
   @app.route("/chat")
   def AIChatBot():
     return render_template('chat.html')
-  textvariable=""
+ 
   @app.route("/get", methods=["GET", "POST"])
   def chat():
-    nonlocal textvariable
+    if 'textvariable' not in session:
+      session['textvariable'] = ""
     msg=request.form["msg"]
     input=msg
     context.append({'role':'user', 'content':f"{input}"})
     response=get_Chat_response(context)
-    textvariable+=("USER: " + input + " | " + "ASSISTANT: " + response)
+    session['textvariable']+=("USER: " + input + " | " + "ASSISTANT: " + response)
     context.append({'role':'assistant', 'content':f"{response}"})
     return response
   
@@ -212,8 +214,6 @@ def flask_app(host=None, port=None):
 
 
   def output_file_creation(df_existing_customer_original, df_potential_customer, textvariable):
-    
-    
     load_dotenv()
     database_url = os.environ.get('DATABASE_URL')
 
