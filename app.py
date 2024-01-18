@@ -208,6 +208,14 @@ def flask_app(host=None, port=None):
     context.append({'role':'assistant', 'content':f"{response}"})
     return response
   
+  @app.route("/robots933456.txt")
+  def robots_txt():
+    print("Handling /robots933456.txt request")
+    # Your route logic here
+
+    # You might also want to add a response to the request
+    return "This is the response for /robots933456.txt"
+
 #-----------------------------------------------------------------------------------------------
 #             Updating the databases with the new conversation
 #-----------------------------------------------------------------------------------------------
