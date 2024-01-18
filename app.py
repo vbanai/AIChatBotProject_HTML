@@ -19,6 +19,8 @@ from google.oauth2 import service_account
 from googleapiclient.http import MediaIoBaseDownload
 from docx import Document
 import tempfile
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import create_engine, text
 
 import logging
 
@@ -32,7 +34,7 @@ def flask_app(host=None, port=None):
 
   app=Flask(__name__)
 
-  text=""
+  textvariable=""
 
 #-----------------------------------------------------------------------------------------------
 #             Reading the databases needed for the process in
@@ -43,6 +45,7 @@ def flask_app(host=None, port=None):
   def data_preparation():
     
     if os.getenv("FLASK_ENV") == "development":
+      
       load_dotenv()
       database_url=os.getenv("DATABASE_URL")
       
@@ -50,9 +53,9 @@ def flask_app(host=None, port=None):
         private_key = file.read()
 
       # Explicitly decode the private key using UTF-8
-      private_key = private_key.encode('utf-8').decode('unicode_escape')
-      
+      private_key = private_key.encode('utf-8').decode('unicode_escape')     
       client_email = os.getenv("CLIENT_EMAIL")
+      
     else:
       # Retrieve the private key from the environment variable
       #private_key_str = os.environ.get('PRIVATE_KEY')
@@ -61,23 +64,28 @@ def flask_app(host=None, port=None):
 
       client_email = os.environ.get('CLIENT_EMAIL')
       database_url = os.environ.get('DATABASE_URL')
-    
-    with psycopg2.connect(database_url) as connection:
-      sql_query2 = 'SELECT * FROM "questions_potentialcustomers"'
-      df_potential_customer = pd.read_sql(sql_query2, connection)
-      sql_query = 'SELECT * FROM "order_existing_clients"'
-      df_existing_customer_original = pd.read_sql(sql_query, connection)
-      
-      with connection.cursor() as cursor:
-          # Execute the SQL query
-          sql_query = 'SELECT * FROM "orders"'
-          cursor.execute(sql_query)
 
-          # Fetch all rows
-          rows = cursor.fetchall()
+    database_url=database_url.replace('postgres', 'postgresql')
+    engine = create_engine(database_url)
+
+  
+   
+    sql_query2 = 'SELECT * FROM "questions_potentialcustomers"'
+    df_potential_customer = pd.read_sql(sql_query2, engine)
+    sql_query = 'SELECT * FROM "order_existing_clients"'
+    df_existing_customer_original = pd.read_sql(sql_query, engine)
+      
+    sql_query_orders = text('SELECT * FROM "orders"')
+    with engine.connect() as connection:
+        # Execute the SQL query
+        #sql_query_orders = 'SELECT * FROM "orders"'
+        result = connection.execute(sql_query_orders)
+
+        # Fetch all rows
+        rows = result.fetchall()
 
     # Extract column names
-    columns = [desc[0] for desc in cursor.description]
+    columns = result.keys()
 
     # Format data as a string
     data_rows = []
@@ -148,7 +156,6 @@ def flask_app(host=None, port=None):
     word_text=full_text.strip()
 
     os.remove(file_path)
-
     return df_existing_customer_original, df_existing_customer, df_potential_customer, word_text
 
 #-----------------------------------------------------------------------------------------------
@@ -197,24 +204,24 @@ def flask_app(host=None, port=None):
 
   @app.route("/messengerchat")
   def messengerchat():
-    nonlocal text
-    if text!="":
-      output_file_creation(df_existing_customer_original, df_potential_customer, text)
-      text=""
+    nonlocal textvariable
+    if textvariable!="":
+      output_file_creation(df_existing_customer_original, df_potential_customer, textvariable)
+      textvariable=""
     return render_template('messengerchat.html')
 
   @app.route("/chat")
   def AIChatBot():
     return render_template('chat.html')
-  text=""
+  textvariable=""
   @app.route("/get", methods=["GET", "POST"])
   def chat():
-    nonlocal text
+    nonlocal textvariable
     msg=request.form["msg"]
     input=msg
     context.append({'role':'user', 'content':f"{input}"})
     response=get_Chat_response(context)
-    text+=("USER: " + input + " | " + "ASSISTANT: " + response)
+    textvariable+=("USER: " + input + " | " + "ASSISTANT: " + response)
     context.append({'role':'assistant', 'content':f"{response}"})
     return response
   
@@ -223,7 +230,7 @@ def flask_app(host=None, port=None):
 #-----------------------------------------------------------------------------------------------
 
 
-  def output_file_creation(df_existing_customer_original, df_potential_customer, text):
+  def output_file_creation(df_existing_customer_original, df_potential_customer, textvariable):
     
     
     load_dotenv()
@@ -233,20 +240,20 @@ def flask_app(host=None, port=None):
     current_date = current_date.strftime("%Y-%m-%d")
     new_column_header = 'Chat'+ current_date
     
-    spotting_identifier=df_existing_customer_original["customernumber"].apply(lambda x: text.lower().find(str(x).lower()) !=-1)
+    spotting_identifier=df_existing_customer_original["customernumber"].apply(lambda x: textvariable.lower().find(str(x).lower()) !=-1)
 
     if not any(spotting_identifier)==True:
       table_name='questions_potentialcustomers'
       if new_column_header not in df_potential_customer.columns.tolist():
         df_potential_customer[new_column_header]=None
         df_potential_customer.loc[0, new_column_header]=''
-        df_potential_customer.loc[0, new_column_header]+=text
+        df_potential_customer.loc[0, new_column_header]+=textvariable
         upload_to_ElephantSQL(database_url, table_name, df_potential_customer)
         df_potential_customer=df_potential_customer
       else:
         last_not_empty_index=df_potential_customer[new_column_header].last_valid_index()
         df_potential_customer.loc[last_not_empty_index+1, new_column_header]=''
-        df_potential_customer.loc[last_not_empty_index+1, new_column_header]+=text
+        df_potential_customer.loc[last_not_empty_index+1, new_column_header]+=textvariable
         upload_to_ElephantSQL(database_url, table_name, df_potential_customer)
         df_potential_customer=df_potential_customer
       
@@ -257,11 +264,11 @@ def flask_app(host=None, port=None):
       row=df_existing_customer_original[spotting_identifier].index.item()
 
       existing_value = str(df_existing_customer_original.loc[row, new_column_header]) if not pd.isna(df_existing_customer_original.loc[row, new_column_header]) else ""
-      df_existing_customer_original.loc[row, new_column_header]=existing_value + text
+      df_existing_customer_original.loc[row, new_column_header]=existing_value + textvariable
       table_name='order_existing_clients'
       upload_to_ElephantSQL(database_url, table_name, df_existing_customer_original)
       df_existing_customer_original=df_existing_customer_original
-      
 
+  
   return app
 
